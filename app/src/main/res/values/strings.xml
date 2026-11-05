@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">NightDim</string>
+    <string name="tile_label">수면 디밍</string>
+</resources>

@@ -1,6 +1,9 @@
 package com.sscrribble.nightdim
 
+import android.Manifest
 import android.app.Activity
+import android.app.AlarmManager
+import android.app.TimePickerDialog
 import android.app.StatusBarManager
 import android.content.ClipData
 import android.content.ClipboardManager
@@ -18,7 +21,10 @@ import android.widget.CheckBox
 import android.widget.SeekBar
 import android.widget.TextView
 import android.widget.Toast
+import com.sscrribble.nightdim.Dimmer.autoOff
+import com.sscrribble.nightdim.Dimmer.autoOffMinutes
 import com.sscrribble.nightdim.Dimmer.level
+import com.sscrribble.nightdim.Dimmer.shakeOff
 import com.sscrribble.nightdim.Dimmer.useMinBrightness
 
 class MainActivity : Activity() {
@@ -78,7 +84,51 @@ class MainActivity : Activity() {
             useMinBrightness = checked
         }
 
+        val shake = findViewById<CheckBox>(R.id.shakeOff)
+        shake.isChecked = shakeOff
+        shake.setOnCheckedChangeListener { _, checked ->
+            shakeOff = checked
+            if (checked) askNotificationPermission()
+            Dimmer.syncHelpers(this)
+        }
+
+        val auto = findViewById<CheckBox>(R.id.autoOff)
+        val timeBtn = findViewById<Button>(R.id.autoOffTime)
+        fun showTime() {
+            timeBtn.text = "%02d:%02d".format(autoOffMinutes / 60, autoOffMinutes % 60)
+        }
+        showTime()
+        auto.isChecked = autoOff
+        auto.setOnCheckedChangeListener { _, checked ->
+            autoOff = checked
+            if (checked) askExactAlarmPermission()
+            Dimmer.syncHelpers(this)
+        }
+        timeBtn.setOnClickListener {
+            TimePickerDialog(this, { _, h, m ->
+                autoOffMinutes = h * 60 + m
+                showTime()
+                Dimmer.syncHelpers(this)
+            }, autoOffMinutes / 60, autoOffMinutes % 60, true).show()
+        }
+
         findViewById<Button>(R.id.addTile).setOnClickListener { requestTile() }
+        if (shakeOff) askNotificationPermission()
+    }
+
+    private fun askNotificationPermission() {
+        if (Build.VERSION.SDK_INT >= 33 &&
+            checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED
+        ) requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 0)
+    }
+
+    private fun askExactAlarmPermission() {
+        if (!getSystemService(AlarmManager::class.java).canScheduleExactAlarms()) {
+            Toast.makeText(this, "정확한 시각에 끄려면 '알람 및 리마인더'를 허용해주세요", Toast.LENGTH_LONG).show()
+            startActivity(
+                Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM, Uri.parse("package:$packageName"))
+            )
+        }
     }
 
     override fun onResume() {
@@ -98,6 +148,7 @@ class MainActivity : Activity() {
         }
         toggle.text = if (on) "끄기" else "켜기"
         minBright.isChecked = useMinBrightness && Dimmer.canWriteSystem(this)
+        if (ok) Dimmer.syncHelpers(this) // 권한 변경 등 반영 (예: 정확한 알람 허용 후)
         TileService.requestListeningState(this, ComponentName(this, DimTileService::class.java))
     }
 

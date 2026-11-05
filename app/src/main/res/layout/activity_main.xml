@@ -70,6 +70,33 @@
             android:layout_marginTop="8dp"
             android:text="켤 때 화면 밝기도 최소로 (끌 때 원래대로)" />
 
+        <CheckBox
+            android:id="@+id/shakeOff"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="폰을 흔들면 끄기 (빠르게 3번)" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <CheckBox
+                android:id="@+id/autoOff"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="이 시각에 자동으로 끄기" />
+
+            <Button
+                android:id="@+id/autoOffTime"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content" />
+        </LinearLayout>
+
         <Button
             android:id="@+id/addTile"
             android:layout_width="match_parent"

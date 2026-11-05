@@ -21,6 +21,9 @@ object Dimmer {
     private const val P_MIN_BRIGHTNESS = "min_brightness"
     private const val P_SAVED_BRIGHTNESS = "saved_brightness"
     private const val P_SAVED_MODE = "saved_mode"
+    private const val P_SHAKE_OFF = "shake_off"
+    private const val P_AUTO_OFF = "auto_off"
+    private const val P_AUTO_OFF_MIN = "auto_off_minutes"
 
     fun hasSecurePermission(ctx: Context) =
         ctx.checkSelfPermission(Manifest.permission.WRITE_SECURE_SETTINGS) ==
@@ -41,6 +44,19 @@ object Dimmer {
         get() = prefs(this).getBoolean(P_MIN_BRIGHTNESS, true)
         set(v) = prefs(this).edit().putBoolean(P_MIN_BRIGHTNESS, v).apply()
 
+    var Context.shakeOff: Boolean
+        get() = prefs(this).getBoolean(P_SHAKE_OFF, true)
+        set(v) = prefs(this).edit().putBoolean(P_SHAKE_OFF, v).apply()
+
+    var Context.autoOff: Boolean
+        get() = prefs(this).getBoolean(P_AUTO_OFF, false)
+        set(v) = prefs(this).edit().putBoolean(P_AUTO_OFF, v).apply()
+
+    /** 자동 끄기 시각 (자정부터 분 단위), 기본 07:00 */
+    var Context.autoOffMinutes: Int
+        get() = prefs(this).getInt(P_AUTO_OFF_MIN, 7 * 60)
+        set(v) = prefs(this).edit().putInt(P_AUTO_OFF_MIN, v).apply()
+
     /** 켜져 있으면 강도만 즉시 반영 */
     fun applyLevel(ctx: Context) {
         if (!hasSecurePermission(ctx)) return
@@ -60,7 +76,21 @@ object Dimmer {
             Settings.Secure.putInt(cr, KEY_ACTIVATED, 0)
             restoreBrightness(ctx)
         }
+        syncHelpers(ctx)
         return true
+    }
+
+    /** 켜짐 상태에 맞춰 흔들기 감지 서비스와 자동 끄기 알람을 시작/정리 */
+    fun syncHelpers(ctx: Context) {
+        val on = isOn(ctx)
+        if (on && ctx.shakeOff) DimService.start(ctx) else DimService.stop(ctx)
+        if (on && ctx.autoOff) AutoOff.schedule(ctx) else AutoOff.cancel(ctx)
+    }
+
+    /** 다른 경로(시스템 타일 등)로 꺼졌을 때 뒷정리 */
+    fun onTurnedOffExternally(ctx: Context) {
+        restoreBrightness(ctx)
+        syncHelpers(ctx)
     }
 
     fun toggle(ctx: Context): Boolean = setOn(ctx, !isOn(ctx))

@@ -11,6 +11,13 @@
         android:name="android.permission.WRITE_SETTINGS"
         tools:ignore="ProtectedPermissions" />
 
+    <!-- 흔들어서 끄기: 디밍 켜져 있는 동안 가속도 센서 감지 -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- 자동 끄기 시각을 정확히 지키기 위함 (없으면 몇 분 늦을 수 있음) -->
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+
     <application
         android:allowBackup="false"
         android:icon="@drawable/ic_dim"
@@ -43,5 +50,18 @@
                 android:name="android.service.quicksettings.TOGGLEABLE_TILE"
                 android:value="true" />
         </service>
+
+        <service
+            android:name=".DimService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Detect phone shake to turn off screen dimming" />
+        </service>
+
+        <receiver
+            android:name=".AutoOffReceiver"
+            android:exported="false" />
     </application>
 </manifest>
